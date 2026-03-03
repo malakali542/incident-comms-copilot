@@ -1,0 +1,16 @@
+=== Incident Context ===
+Started: March 5, 2025 around 6:02 PM Pacific Time
+Affected Service: search-service (customer-facing search)
+
+--- Slack #incidents Thread ---
+[6:02 PM] @oncall-bot: ⚠️ PagerDuty Alert PXXX789: p99 latency > 2s for search-service (actual: 3.1s)
+
+[6:05 PM] @frank.oncall: Ack'd. Looking at it. Probably a transient ES GC pause.
+
+[6:07 PM] @frank.oncall: Yep, seeing a GC pause on es-prod-01 cluster. Heap was at 88%. Query latencies spiked but already coming down.
+
+[6:10 PM] @frank.oncall: p99 dropping — now at 1.2s. No customer reports. p50 was barely affected (0.15s peak).
+
+[6:15 PM] @frank.oncall: Back to normal. This was a brief GC-related spike, no action needed. No customer impact worth reporting.
+
+[6:20 PM] @frank.oncall: Auto-resolved. Closing out.

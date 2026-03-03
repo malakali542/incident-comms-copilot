@@ -1,0 +1,11 @@
+{
+  "incident_id": "PXXX456",
+  "service": "checkout-service",
+  "severity": "SEV-1",
+  "start_time": "2025-02-10T09:12:00Z",
+  "end_time": "2025-02-10T11:30:00Z",
+  "impact_type": "service_outage",
+  "deployment_related": false,
+  "root_cause_confidence": "external_dependency",
+  "_description": "G2 – External Dependency Failure: Stripe outage caused payment failures, no internal deployment was causal"
+}

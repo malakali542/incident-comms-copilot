@@ -1,0 +1,33 @@
+{
+  "incident": {
+    "id": "PXXX456",
+    "title": "Payment Processing Failures - checkout-service",
+    "status": "resolved",
+    "urgency": "high",
+    "severity": "SEV-1",
+    "created_at": "2025-02-10T09:12:00Z",
+    "acknowledged_at": "2025-02-10T09:14:00Z",
+    "resolved_at": "2025-02-10T11:30:00Z",
+    "service": "checkout-service",
+    "assigned_to": "carlos.sre@example.com",
+    "timeline": [
+      {
+        "timestamp": "2025-02-10T09:12:00Z",
+        "type": "trigger",
+        "message": "Alert triggered: payment_success_rate < 50% for checkout-service (actual: 12%)"
+      },
+      {
+        "timestamp": "2025-02-10T09:14:00Z",
+        "type": "acknowledge",
+        "user": "carlos.sre@example.com",
+        "message": "Acknowledged by Carlos SRE"
+      },
+      {
+        "timestamp": "2025-02-10T11:30:00Z",
+        "type": "resolve",
+        "user": "carlos.sre@example.com",
+        "message": "Resolved - external provider confirmed recovery"
+      }
+    ]
+  }
+}

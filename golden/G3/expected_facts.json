@@ -1,0 +1,11 @@
+{
+  "incident_id": "PXXX789",
+  "service": "search-service",
+  "severity": "SEV-3",
+  "start_time": "2025-03-05T18:02:00Z",
+  "end_time": "2025-03-05T18:20:00Z",
+  "impact_type": "minor_transient_latency",
+  "deployment_related": false,
+  "root_cause_confidence": "low",
+  "_description": "G3 – Transient Spike: Brief ES GC pause caused minor latency blip, no meaningful customer impact, no status page update warranted"
+}

@@ -1,0 +1,13 @@
+{
+  "deployments": [
+    {
+      "timestamp": "2025-02-09T16:00:00Z",
+      "service": "checkout-service",
+      "pr_number": 13200,
+      "commit_sha": "aaa111",
+      "author": "diana.dev@example.com",
+      "title": "Update checkout page copy for Q1 campaign",
+      "description": "Minor text changes to checkout confirmation page for new marketing campaign"
+    }
+  ]
+}

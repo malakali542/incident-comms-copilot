@@ -1,0 +1,28 @@
+=== Incident Context ===
+Started: February 10, 2025 around 9:12 AM Pacific Time
+Affected Service: checkout-service (customer-facing payment processing)
+
+--- Slack #incidents Thread ---
+[9:12 AM] @oncall-bot: 🚨 PagerDuty Alert PXXX456: Payment success rate critically low - checkout-service < 50%
+
+[9:14 AM] @carlos.sre: Acknowledged. Checking dashboards now.
+
+[9:16 AM] @carlos.sre: Payment success rate dropped to 12%. Seeing massive 500s from checkout-service.
+
+[9:18 AM] @carlos.sre: Logs show "Payment gateway timeout" and HTTP 503 from Stripe. This looks like an upstream provider issue, not us.
+
+[9:20 AM] @diana.dev: I deployed a copy change to checkout yesterday evening (PR #13200) but it was text-only, no backend changes.
+
+[9:22 AM] @carlos.sre: Confirmed — checked the diff, it's just HTML copy. No config or backend changes. This is Stripe.
+
+[9:25 AM] @carlos.sre: Checking Stripe status page... They're reporting "Degraded Performance" on their status page as of 9:05 AM UTC.
+
+[9:30 AM] @carlos.sre: Circuit breaker tripped for Stripe after 50 consecutive failures. We're now returning a friendly "try again later" message to customers instead of hanging.
+
+[9:45 AM] @emily.support: Getting customer reports about failed payments. Directing them to retry in 30 minutes.
+
+[10:30 AM] @carlos.sre: Stripe status page updated to "Partial Recovery". Our circuit breaker is in half-open state, allowing some test requests through. Seeing ~55% success rate.
+
+[11:00 AM] @carlos.sre: Success rate climbing back to 92%. Stripe has marked their issue as resolved.
+
+[11:30 AM] @carlos.sre: Full recovery confirmed. Payment success rate back to 99.7%. Closing incident.

@@ -1,0 +1,33 @@
+{
+  "incident": {
+    "id": "PXXX999",
+    "title": "Elevated Error Rate - auth-service",
+    "status": "resolved",
+    "urgency": "high",
+    "severity": "SEV-2",
+    "created_at": "2025-04-20T03:15:00Z",
+    "acknowledged_at": "2025-04-20T03:22:00Z",
+    "resolved_at": "2025-04-20T05:00:00Z",
+    "service": "auth-service",
+    "assigned_to": "grace.oncall@example.com",
+    "timeline": [
+      {
+        "timestamp": "2025-04-20T03:15:00Z",
+        "type": "trigger",
+        "message": "Alert triggered: HTTP 500 rate > 5% for auth-service (actual: 22%)"
+      },
+      {
+        "timestamp": "2025-04-20T03:22:00Z",
+        "type": "acknowledge",
+        "user": "grace.oncall@example.com",
+        "message": "Acknowledged by Grace OnCall"
+      },
+      {
+        "timestamp": "2025-04-20T05:00:00Z",
+        "type": "resolve",
+        "user": "grace.oncall@example.com",
+        "message": "Resolved by Grace OnCall"
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "incident_id": "PXXX999",
+  "service": "auth-service",
+  "severity": "SEV-2",
+  "start_time": "2025-04-20T03:15:00Z",
+  "end_time": "2025-04-20T05:00:00Z",
+  "impact_type": "errors_and_latency",
+  "deployment_related": true,
+  "root_cause_confidence": "unknown",
+  "_description": "G4 – Partial Data: Missing Slack, only 1 log entry. Token validation deployment is likely causal but no Slack confirmation. Model should be conservative about root cause."
+}

@@ -1,0 +1,58 @@
+{
+  "logs": [
+    {
+      "timestamp": "2025-02-10T09:10:22Z",
+      "level": "ERROR",
+      "service": "checkout-service",
+      "message": "Payment gateway timeout: upstream provider did not respond within 30000ms",
+      "context": {
+        "provider": "stripe",
+        "endpoint": "https://api.stripe.com/v1/charges",
+        "timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-02-10T09:12:05Z",
+      "level": "ERROR",
+      "service": "checkout-service",
+      "message": "Payment gateway returned HTTP 503: Service Unavailable",
+      "context": {
+        "provider": "stripe",
+        "http_status": 503,
+        "response_body": "Service temporarily unavailable"
+      }
+    },
+    {
+      "timestamp": "2025-02-10T09:15:30Z",
+      "level": "ERROR",
+      "service": "checkout-service",
+      "message": "Circuit breaker OPEN for payment provider stripe after 50 consecutive failures",
+      "context": {
+        "provider": "stripe",
+        "consecutive_failures": 50,
+        "circuit_state": "open"
+      }
+    },
+    {
+      "timestamp": "2025-02-10T10:30:00Z",
+      "level": "WARN",
+      "service": "checkout-service",
+      "message": "Circuit breaker HALF-OPEN for payment provider stripe, allowing test requests",
+      "context": {
+        "provider": "stripe",
+        "circuit_state": "half-open"
+      }
+    },
+    {
+      "timestamp": "2025-02-10T11:15:00Z",
+      "level": "INFO",
+      "service": "checkout-service",
+      "message": "Circuit breaker CLOSED for payment provider stripe, service recovered",
+      "context": {
+        "provider": "stripe",
+        "circuit_state": "closed",
+        "success_rate": 0.99
+      }
+    }
+  ]
+}

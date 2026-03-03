@@ -1,0 +1,31 @@
+=== Incident Context ===
+Started: January 15, 2025 around 2:23 PM Pacific Time
+Affected Service: api-gateway (customer-facing API)
+
+--- Slack #incidents Thread ---
+[2:23 PM] @oncall-bot: 🚨 PagerDuty Alert PXXX123: High API latency - api-gateway p99 latency > 5s
+
+[2:25 PM] @alice.engineer: Acknowledged. Checking CloudWatch logs and Prometheus dashboards.
+
+[2:28 PM] @alice.engineer: Seeing tons of connection timeout errors to the database. Connection pool looks maxed out.
+CloudWatch logs show: "Connection timeout to database, pool size 50/50, wait time 30s"
+
+[2:29 PM] @alice.engineer: Looks like it's the rds-prod-main pool that's exhausted
+
+[2:30 PM] @alice.engineer: Added note to PagerDuty: Database connection pool exhausted
+
+[2:35 PM] @bob.sre: Any recent deployments? Checking GitHub...
+
+[2:37 PM] @bob.sre: Found it! PR #12345 deployed at 2:15 PM. Changed HTTP client timeout from 10s to 30s. That's holding connections 3x longer!
+
+[2:40 PM] @alice.engineer: Makes sense. Connection pool can't recycle fast enough with the longer timeout. When pool fills up, new requests have to wait up to 30s for a connection, which causes everything to cascade.
+
+[2:42 PM] @bob.sre: We really should have alerting on connection pool utilization. Would've caught this before it hit customers.
+
+[2:45 PM] @bob.sre: Initiating rollback of PR #12345
+
+[3:00 PM] @bob.sre: Rollback complete. Connection pool utilization dropping back to 60%. Latency returning to normal.
+
+[4:45 PM] @alice.engineer: Monitoring for 90 minutes post-rollback. All metrics stable. Marking incident as resolved.
+
+[4:47 PM] @alice.engineer: For the postmortem - we should add connection pool sizing validation to our deployment review checklist. This could've been caught in review.

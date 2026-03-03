@@ -1,0 +1,14 @@
+{
+  "logs": [
+    {
+      "timestamp": "2025-04-20T03:15:10Z",
+      "level": "ERROR",
+      "service": "auth-service",
+      "message": "Unhandled exception in token validation: NullPointerException",
+      "context": {
+        "endpoint": "/api/v2/auth/validate",
+        "stack_trace": "truncated"
+      }
+    }
+  ]
+}

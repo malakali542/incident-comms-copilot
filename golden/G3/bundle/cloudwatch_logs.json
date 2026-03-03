@@ -1,0 +1,37 @@
+{
+  "logs": [
+    {
+      "timestamp": "2025-03-05T18:01:15Z",
+      "level": "WARN",
+      "service": "search-service",
+      "message": "Elasticsearch query latency elevated: avg 2.8s (normal: 0.3s)",
+      "context": {
+        "cluster": "es-prod-01",
+        "index": "search_v3",
+        "avg_query_ms": 2800
+      }
+    },
+    {
+      "timestamp": "2025-03-05T18:03:00Z",
+      "level": "WARN",
+      "service": "search-service",
+      "message": "Elasticsearch GC pause detected: 1.2s",
+      "context": {
+        "cluster": "es-prod-01",
+        "gc_pause_ms": 1200,
+        "heap_usage_pct": 88
+      }
+    },
+    {
+      "timestamp": "2025-03-05T18:12:00Z",
+      "level": "INFO",
+      "service": "search-service",
+      "message": "Elasticsearch query latency returned to normal: avg 0.35s",
+      "context": {
+        "cluster": "es-prod-01",
+        "avg_query_ms": 350,
+        "heap_usage_pct": 62
+      }
+    }
+  ]
+}

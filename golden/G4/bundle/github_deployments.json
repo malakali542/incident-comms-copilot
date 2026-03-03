@@ -1,0 +1,22 @@
+{
+  "deployments": [
+    {
+      "timestamp": "2025-04-19T22:30:00Z",
+      "service": "auth-service",
+      "pr_number": 14500,
+      "commit_sha": "bbb222",
+      "author": "henry.dev@example.com",
+      "title": "Refactor token validation logic",
+      "description": "Simplify JWT validation and add support for new token format"
+    },
+    {
+      "timestamp": "2025-04-20T01:00:00Z",
+      "service": "billing-service",
+      "pr_number": 14505,
+      "commit_sha": "ccc333",
+      "author": "iris.dev@example.com",
+      "title": "Add invoice PDF generation",
+      "description": "New feature: generate downloadable PDF invoices for enterprise customers"
+    }
+  ]
+}

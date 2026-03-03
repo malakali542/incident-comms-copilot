@@ -1,0 +1,11 @@
+{
+  "incident_id": "PXXX123",
+  "service": "api-gateway",
+  "severity": "SEV-2",
+  "start_time": "2025-01-15T14:23:00Z",
+  "end_time": "2025-01-15T16:45:00Z",
+  "impact_type": "degraded_performance",
+  "deployment_related": true,
+  "root_cause_confidence": "high",
+  "_description": "G1 – Deployment Regression: HTTP timeout change caused DB connection pool exhaustion, rolled back"
+}

@@ -1,0 +1,46 @@
+{
+  "metrics": [
+    {
+      "metric_name": "http_request_duration_seconds",
+      "labels": { "service": "search-service", "quantile": "0.99" },
+      "values": [
+        { "timestamp": "2025-03-05T17:50:00Z", "value": 0.4 },
+        { "timestamp": "2025-03-05T17:55:00Z", "value": 0.42 },
+        { "timestamp": "2025-03-05T18:00:00Z", "value": 1.8 },
+        { "timestamp": "2025-03-05T18:02:00Z", "value": 3.1 },
+        { "timestamp": "2025-03-05T18:05:00Z", "value": 2.8 },
+        { "timestamp": "2025-03-05T18:10:00Z", "value": 1.2 },
+        { "timestamp": "2025-03-05T18:15:00Z", "value": 0.5 },
+        { "timestamp": "2025-03-05T18:20:00Z", "value": 0.41 }
+      ]
+    },
+    {
+      "metric_name": "http_request_duration_seconds",
+      "labels": { "service": "search-service", "quantile": "0.50" },
+      "values": [
+        { "timestamp": "2025-03-05T17:50:00Z", "value": 0.08 },
+        { "timestamp": "2025-03-05T17:55:00Z", "value": 0.08 },
+        { "timestamp": "2025-03-05T18:00:00Z", "value": 0.12 },
+        { "timestamp": "2025-03-05T18:02:00Z", "value": 0.15 },
+        { "timestamp": "2025-03-05T18:05:00Z", "value": 0.13 },
+        { "timestamp": "2025-03-05T18:10:00Z", "value": 0.09 },
+        { "timestamp": "2025-03-05T18:15:00Z", "value": 0.08 },
+        { "timestamp": "2025-03-05T18:20:00Z", "value": 0.08 }
+      ]
+    },
+    {
+      "metric_name": "http_requests_total",
+      "labels": { "service": "search-service", "status": "500" },
+      "values": [
+        { "timestamp": "2025-03-05T17:50:00Z", "value": 0 },
+        { "timestamp": "2025-03-05T17:55:00Z", "value": 0 },
+        { "timestamp": "2025-03-05T18:00:00Z", "value": 2 },
+        { "timestamp": "2025-03-05T18:02:00Z", "value": 3 },
+        { "timestamp": "2025-03-05T18:05:00Z", "value": 1 },
+        { "timestamp": "2025-03-05T18:10:00Z", "value": 0 },
+        { "timestamp": "2025-03-05T18:15:00Z", "value": 0 },
+        { "timestamp": "2025-03-05T18:20:00Z", "value": 0 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "metrics": [
+    {
+      "metric_name": "http_request_duration_seconds",
+      "labels": { "service": "auth-service", "quantile": "0.99" },
+      "values": [
+        { "timestamp": "2025-04-20T03:00:00Z", "value": 0.2 },
+        { "timestamp": "2025-04-20T03:10:00Z", "value": 0.22 },
+        { "timestamp": "2025-04-20T03:15:00Z", "value": 4.5 },
+        { "timestamp": "2025-04-20T03:20:00Z", "value": 6.2 },
+        { "timestamp": "2025-04-20T03:30:00Z", "value": 5.8 },
+        { "timestamp": "2025-04-20T03:45:00Z", "value": 3.1 },
+        { "timestamp": "2025-04-20T04:00:00Z", "value": 1.5 },
+        { "timestamp": "2025-04-20T04:30:00Z", "value": 0.3 },
+        { "timestamp": "2025-04-20T05:00:00Z", "value": 0.21 }
+      ]
+    },
+    {
+      "metric_name": "http_requests_total",
+      "labels": { "service": "auth-service", "status": "500" },
+      "values": [
+        { "timestamp": "2025-04-20T03:00:00Z", "value": 0 },
+        { "timestamp": "2025-04-20T03:10:00Z", "value": 2 },
+        { "timestamp": "2025-04-20T03:15:00Z", "value": 55 },
+        { "timestamp": "2025-04-20T03:20:00Z", "value": 78 },
+        { "timestamp": "2025-04-20T03:30:00Z", "value": 65 },
+        { "timestamp": "2025-04-20T03:45:00Z", "value": 30 },
+        { "timestamp": "2025-04-20T04:00:00Z", "value": 8 },
+        { "timestamp": "2025-04-20T04:30:00Z", "value": 0 },
+        { "timestamp": "2025-04-20T05:00:00Z", "value": 0 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "deployments": [
+    {
+      "timestamp": "2025-01-15T13:30:00Z",
+      "service": "notification-service",
+      "pr_number": 12340,
+      "commit_sha": "def456",
+      "author": "jane.dev@example.com",
+      "title": "Add retry logic to email notifications",
+      "description": "Implement exponential backoff for failed email delivery attempts"
+    },
+    {
+      "timestamp": "2025-01-15T14:15:00Z",
+      "service": "api-gateway",
+      "pr_number": 12345,
+      "commit_sha": "abc123",
+      "author": "john.dev@example.com",
+      "title": "Increase HTTP client timeout to 30s",
+      "description": "Update HTTP client timeout from 10s to 30s to handle slow downstream services. This prevents premature timeout errors when calling external APIs.",
+      "files_changed": [
+        "api-gateway/config/http_client.yaml"
+      ],
+      "diff_snippet": "- timeout: 10s\n+ timeout: 30s"
+    },
+    {
+      "timestamp": "2025-01-15T15:45:00Z",
+      "service": "api-gateway",
+      "pr_number": 12347,
+      "commit_sha": "xyz789",
+      "author": "bob.sre@example.com",
+      "title": "Revert: Increase HTTP client timeout to 30s",
+      "description": "Emergency rollback of PR #12345 due to database connection pool exhaustion",
+      "files_changed": [
+        "api-gateway/config/http_client.yaml"
+      ],
+      "diff_snippet": "- timeout: 30s\n+ timeout: 10s"
+    }
+  ]
+}

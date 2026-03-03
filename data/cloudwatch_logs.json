@@ -1,0 +1,63 @@
+{
+  "logs": [
+    {
+      "timestamp": "2025-01-15T14:23:15Z",
+      "level": "ERROR",
+      "service": "api-gateway",
+      "message": "Connection timeout to database after 30000ms",
+      "context": {
+        "connection_pool_size": 50,
+        "active_connections": 50,
+        "wait_time_ms": 30000,
+        "database": "rds-prod-main"
+      }
+    },
+    {
+      "timestamp": "2025-01-15T14:23:47Z",
+      "level": "ERROR",
+      "service": "api-gateway",
+      "message": "Connection timeout to database after 30000ms",
+      "context": {
+        "connection_pool_size": 50,
+        "active_connections": 50,
+        "wait_time_ms": 30000,
+        "database": "rds-prod-main"
+      }
+    },
+    {
+      "timestamp": "2025-01-15T14:24:12Z",
+      "level": "ERROR",
+      "service": "api-gateway",
+      "message": "Connection timeout to database after 30000ms",
+      "context": {
+        "connection_pool_size": 50,
+        "active_connections": 50,
+        "wait_time_ms": 30000,
+        "database": "rds-prod-main"
+      }
+    },
+    {
+      "timestamp": "2025-01-15T14:25:33Z",
+      "level": "ERROR",
+      "service": "api-gateway",
+      "message": "Connection timeout to database after 30000ms",
+      "context": {
+        "connection_pool_size": 50,
+        "active_connections": 50,
+        "wait_time_ms": 30000,
+        "database": "rds-prod-main"
+      }
+    },
+    {
+      "timestamp": "2025-01-15T15:05:00Z",
+      "level": "INFO",
+      "service": "api-gateway",
+      "message": "Database connection pool recovered",
+      "context": {
+        "connection_pool_size": 50,
+        "active_connections": 30,
+        "database": "rds-prod-main"
+      }
+    }
+  ]
+}

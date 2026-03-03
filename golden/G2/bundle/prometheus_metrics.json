@@ -1,0 +1,51 @@
+{
+  "metrics": [
+    {
+      "metric_name": "payment_success_rate",
+      "labels": { "service": "checkout-service", "provider": "stripe" },
+      "values": [
+        { "timestamp": "2025-02-10T09:00:00Z", "value": 0.998 },
+        { "timestamp": "2025-02-10T09:05:00Z", "value": 0.95 },
+        { "timestamp": "2025-02-10T09:10:00Z", "value": 0.42 },
+        { "timestamp": "2025-02-10T09:15:00Z", "value": 0.12 },
+        { "timestamp": "2025-02-10T09:20:00Z", "value": 0.08 },
+        { "timestamp": "2025-02-10T09:30:00Z", "value": 0.10 },
+        { "timestamp": "2025-02-10T09:45:00Z", "value": 0.15 },
+        { "timestamp": "2025-02-10T10:00:00Z", "value": 0.18 },
+        { "timestamp": "2025-02-10T10:30:00Z", "value": 0.55 },
+        { "timestamp": "2025-02-10T11:00:00Z", "value": 0.92 },
+        { "timestamp": "2025-02-10T11:30:00Z", "value": 0.997 }
+      ]
+    },
+    {
+      "metric_name": "http_request_duration_seconds",
+      "labels": { "service": "checkout-service", "quantile": "0.99" },
+      "values": [
+        { "timestamp": "2025-02-10T09:00:00Z", "value": 0.3 },
+        { "timestamp": "2025-02-10T09:10:00Z", "value": 8.5 },
+        { "timestamp": "2025-02-10T09:15:00Z", "value": 30.0 },
+        { "timestamp": "2025-02-10T09:20:00Z", "value": 30.0 },
+        { "timestamp": "2025-02-10T09:30:00Z", "value": 30.0 },
+        { "timestamp": "2025-02-10T10:00:00Z", "value": 25.0 },
+        { "timestamp": "2025-02-10T10:30:00Z", "value": 5.2 },
+        { "timestamp": "2025-02-10T11:00:00Z", "value": 0.8 },
+        { "timestamp": "2025-02-10T11:30:00Z", "value": 0.3 }
+      ]
+    },
+    {
+      "metric_name": "http_requests_total",
+      "labels": { "service": "checkout-service", "status": "500" },
+      "values": [
+        { "timestamp": "2025-02-10T09:00:00Z", "value": 0 },
+        { "timestamp": "2025-02-10T09:10:00Z", "value": 85 },
+        { "timestamp": "2025-02-10T09:15:00Z", "value": 230 },
+        { "timestamp": "2025-02-10T09:20:00Z", "value": 310 },
+        { "timestamp": "2025-02-10T09:30:00Z", "value": 290 },
+        { "timestamp": "2025-02-10T10:00:00Z", "value": 180 },
+        { "timestamp": "2025-02-10T10:30:00Z", "value": 45 },
+        { "timestamp": "2025-02-10T11:00:00Z", "value": 5 },
+        { "timestamp": "2025-02-10T11:30:00Z", "value": 0 }
+      ]
+    }
+  ]
+}

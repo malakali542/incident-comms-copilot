@@ -1,0 +1,33 @@
+{
+  "incident": {
+    "id": "PXXX123",
+    "title": "High API Latency - api-gateway",
+    "status": "resolved",
+    "urgency": "high",
+    "severity": "SEV-2",
+    "created_at": "2025-01-15T14:23:00Z",
+    "acknowledged_at": "2025-01-15T14:25:00Z",
+    "resolved_at": "2025-01-15T16:45:00Z",
+    "service": "api-gateway",
+    "assigned_to": "alice.engineer@example.com",
+    "timeline": [
+      {
+        "timestamp": "2025-01-15T14:23:00Z",
+        "type": "trigger",
+        "message": "Alert triggered: p99 latency > 5s for api-gateway (actual: 15.2s)"
+      },
+      {
+        "timestamp": "2025-01-15T14:25:00Z",
+        "type": "acknowledge",
+        "user": "alice.engineer@example.com",
+        "message": "Acknowledged by Alice Engineer"
+      },
+      {
+        "timestamp": "2025-01-15T16:45:00Z",
+        "type": "resolve",
+        "user": "alice.engineer@example.com",
+        "message": "Resolved by Alice Engineer"
+      }
+    ]
+  }
+}

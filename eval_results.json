@@ -1,0 +1,166 @@
+[
+  {
+    "incident_id": "G1",
+    "status": "OK",
+    "description": "G1 \u00e2\u20ac\u201c Deployment Regression: HTTP timeout change caused DB connection pool exhaustion, rolled back",
+    "correct": 7,
+    "total": 7,
+    "accuracy": 1.0,
+    "mismatches": [],
+    "hallucinations": [],
+    "risk_score": "low",
+    "risk_flags": [],
+    "extraction_time_s": 4.66,
+    "generation_time_s": 3.42,
+    "risk_scan_time_s": 0.82,
+    "extracted_facts": {
+      "incident_id": "PXXX123",
+      "service": "api-gateway",
+      "severity": "SEV-2",
+      "start_time": "2025-01-15T14:23:00+00:00",
+      "end_time": "2025-01-15T16:45:00+00:00",
+      "impact_type": "elevated latency and errors",
+      "customer_impact_summary": "Customers experienced significantly increased API response times (p99 latency up to 18 seconds) and elevated HTTP 500 errors when accessing the api-gateway service. Impact persisted for over two hours before recovery.",
+      "scope": "All customers using the api-gateway service were potentially affected by slow responses and intermittent errors during the incident window.",
+      "mitigation_summary": "The issue was mitigated by rolling back a recent deployment that had increased the HTTP client timeout. After the rollback, database connection pool utilization and API latency returned to normal levels.",
+      "deployment_related": true,
+      "root_cause_confidence": "low",
+      "knowns": [
+        "Incident began shortly after a deployment that increased HTTP client timeout.",
+        "API latency and error rates spiked, with database connection pool utilization reaching 100%.",
+        "Rolling back the deployment restored normal operation.",
+        "PagerDuty alerts and metrics confirm the timing and severity of customer impact."
+      ],
+      "unknowns": [
+        "Exact mechanism by which the timeout change led to connection pool exhaustion is not fully confirmed.",
+        "Whether any other factors contributed to the incident."
+      ],
+      "notes_for_internal_use": "PR #12345 increased HTTP client timeout from 10s to 30s, which coincided with connection pool exhaustion and cascading latency/errors. Rollback (PR #12347) resolved the issue. Database involved: rds-prod-main. Consider adding connection pool sizing validation to deployment reviews and alerting on pool utilization."
+    },
+    "external_update": "Summary:\nBetween 14:23 and 16:45 UTC on January 15, customers experienced increased response times and errors when using our API service.\n\nImpact:\nAll customers accessing the API were potentially affected by slow responses (with some requests taking up to 18 seconds) and intermittent errors.\n\nScope & Duration:\nThe issue persisted for just over two hours and impacted all users of the API service during this window.\n\nCurrent Status:\nThe incident has been resolved. Service performance and reliability have returned to normal levels.\n\nNext Steps & Next Update:\nWe are continuing to review the incident to prevent recurrence. No further updates are expected unless new information becomes available."
+  },
+  {
+    "incident_id": "G2",
+    "status": "OK",
+    "description": "G2 \u00e2\u20ac\u201c External Dependency Failure: Stripe outage caused payment failures, no internal deployment was causal",
+    "correct": 7,
+    "total": 7,
+    "accuracy": 1.0,
+    "mismatches": [],
+    "hallucinations": [],
+    "risk_score": "low",
+    "risk_flags": [],
+    "extraction_time_s": 5.32,
+    "generation_time_s": 4.33,
+    "risk_scan_time_s": 0.8,
+    "extracted_facts": {
+      "incident_id": "PXXX456",
+      "service": "checkout-service",
+      "severity": "SEV-1",
+      "start_time": "2025-02-10T09:12:00+00:00",
+      "end_time": "2025-02-10T11:30:00+00:00",
+      "impact_type": "Degraded payments",
+      "customer_impact_summary": "Customers were unable to complete payments through the checkout page, with a payment success rate dropping as low as 12%. Many payment attempts failed or timed out, resulting in HTTP 500 errors and significant delays. Customers received error messages and were advised to retry later.",
+      "scope": "All users attempting to make payments via the checkout-service during the incident window were affected.",
+      "mitigation_summary": "A circuit breaker was triggered after repeated failures to the payment provider, which switched error responses to a user-friendly retry message instead of timeouts. Service recovered as the upstream payment provider restored availability.",
+      "deployment_related": false,
+      "root_cause_confidence": "low",
+      "knowns": [
+        "Payment success rate dropped below 50%, reaching as low as 12%.",
+        "Checkout-service experienced high latency and HTTP 500 errors.",
+        "Logs and monitoring indicated timeouts and service unavailable errors from the external payment provider.",
+        "A circuit breaker was activated to prevent prolonged timeouts.",
+        "Service recovered after the external payment provider resolved their issue.",
+        "No backend or configuration changes were deployed prior to the incident; only a text change was made."
+      ],
+      "unknowns": [
+        "Exact technical root cause at the external payment provider.",
+        "Whether any specific customer segments were more affected than others."
+      ],
+      "notes_for_internal_use": "Incident tracked as PagerDuty PXXX456. Deployment PR #13200 was a text-only change and confirmed not related. Stripe (external payment provider) reported degraded performance during the incident. Circuit breaker logic engaged after 50 consecutive failures. Customer support received reports of failed payments and advised retries. Stripe status page confirmed partial and then full recovery."
+    },
+    "external_update": "Summary:\nEarlier today, customers experienced issues completing payments on our checkout page.\n\nImpact:\nMany payment attempts failed or timed out, and customers saw error messages advising them to retry later. Payment success rates dropped significantly during this period.\n\nScope & Duration:\nAll users attempting to make payments between 09:12 and 11:30 UTC were affected.\n\nCurrent Status:\nThe issue has been resolved, and payment processing is now fully restored.\n\nNext Steps & Next Update:\nWe are continuing to monitor payment performance closely. No further customer action is required. Thank you for your patience."
+  },
+  {
+    "incident_id": "G3",
+    "status": "OK",
+    "description": "G3 \u00e2\u20ac\u201c Transient Spike: Brief ES GC pause caused minor latency blip, no meaningful customer impact, no status page update warranted",
+    "correct": 7,
+    "total": 7,
+    "accuracy": 1.0,
+    "mismatches": [],
+    "hallucinations": [],
+    "risk_score": "low",
+    "risk_flags": [],
+    "extraction_time_s": 5.3,
+    "generation_time_s": 4.94,
+    "risk_scan_time_s": 0.8,
+    "extracted_facts": {
+      "incident_id": "PXXX789",
+      "service": "search-service",
+      "severity": "SEV-3",
+      "start_time": "2025-03-05T18:02:00+00:00",
+      "end_time": "2025-03-05T18:20:00+00:00",
+      "impact_type": "elevated latency and minor errors",
+      "customer_impact_summary": "Between 18:02 and 18:20 UTC, users of the search-service may have experienced elevated response times (up to 3.1 seconds at the 99th percentile) and a small number of HTTP 500 errors. The majority of requests remained unaffected, and there were no customer reports received.",
+      "scope": "All users of the search-service were potentially affected by increased latency and a small number of errors during the incident window.",
+      "mitigation_summary": "No manual intervention was required; the service auto-recovered as system metrics returned to normal.",
+      "deployment_related": false,
+      "root_cause_confidence": "low",
+      "knowns": [
+        "p99 latency for search-service spiked above 3 seconds for several minutes",
+        "A small number of HTTP 500 errors occurred during the incident window",
+        "Metrics and logs indicate a brief period of elevated Elasticsearch GC pause and heap usage",
+        "No customer tickets or reports were received",
+        "Service metrics returned to normal without manual intervention"
+      ],
+      "unknowns": [
+        "Exact trigger for the elevated GC pause",
+        "Whether all users experienced the latency or only a subset"
+      ],
+      "notes_for_internal_use": "Incident correlated with a GC pause on es-prod-01 cluster (heap at 88%). No deployment activity observed. Internal discussion suggests this was a transient Elasticsearch GC event. No action was taken; system auto-recovered. No evidence of widespread customer impact."
+    },
+    "external_update": "Summary:\nBetween 18:02 and 18:20 UTC, our search service experienced higher than normal response times and a small number of errors.\n\nImpact:\nSome users may have noticed slower search results and occasional errors during this period. Most requests were not affected, and we did not receive any customer reports.\n\nScope & Duration:\nAll users of the search service were potentially impacted for approximately 18 minutes.\n\nCurrent Status:\nThe service has fully recovered, and performance has returned to normal.\n\nNext Steps & Next Update:\nWe are continuing to review system logs to better understand the cause and prevent similar issues in the future. No further updates are expected unless new information becomes available."
+  },
+  {
+    "incident_id": "G4",
+    "status": "OK",
+    "description": "G4 \u00e2\u20ac\u201c Partial Data: Missing Slack, only 1 log entry. Token validation deployment is likely causal but no Slack confirmation. Model should be conservative about root cause.",
+    "correct": 7,
+    "total": 7,
+    "accuracy": 1.0,
+    "mismatches": [],
+    "hallucinations": [],
+    "risk_score": "low",
+    "risk_flags": [],
+    "extraction_time_s": 4.07,
+    "generation_time_s": 4.08,
+    "risk_scan_time_s": 0.82,
+    "extracted_facts": {
+      "incident_id": "PXXX999",
+      "service": "auth-service",
+      "severity": "SEV-2",
+      "start_time": "2025-04-20T03:15:00+00:00",
+      "end_time": "2025-04-20T05:00:00+00:00",
+      "impact_type": "elevated errors and latency",
+      "customer_impact_summary": "Between 03:15 and 05:00 UTC, users of the authentication service experienced elevated error rates (HTTP 500) and significantly increased response times. This may have prevented some users from logging in or validating tokens during the incident window.",
+      "scope": "All users of the authentication service were potentially affected by increased error rates and slow responses.",
+      "mitigation_summary": "The incident was acknowledged and resolved by the on-call engineer. No specific mitigation steps are detailed in the timeline, but service metrics returned to normal by 05:00 UTC.",
+      "deployment_related": true,
+      "root_cause_confidence": "low",
+      "knowns": [
+        "Elevated HTTP 500 errors and latency began at 03:15 UTC.",
+        "Incident was detected and resolved via PagerDuty.",
+        "A deployment to auth-service occurred several hours before the incident.",
+        "Error logs indicated unhandled exceptions in token validation."
+      ],
+      "unknowns": [
+        "Exact root cause of the errors and latency.",
+        "Whether the deployment directly caused the incident.",
+        "Specific mitigation actions taken by the on-call engineer."
+      ],
+      "notes_for_internal_use": "Auth-service deployment (PR #14500, refactor token validation) occurred at 22:30 UTC, several hours before incident start. Error logs reference NullPointerException in token validation. No rollback or hotfix is explicitly mentioned in the timeline."
+    },
+    "external_update": "Summary:\nBetween 03:15 and 05:00 UTC, our authentication service experienced elevated error rates and slower than normal response times.\n\nImpact:\nSome users may have been unable to log in or validate tokens during this period due to increased errors and delays.\n\nScope & Duration:\nAll users of our authentication service were potentially affected from 03:15 to 05:00 UTC.\n\nCurrent Status:\nThe issue has been resolved, and service performance has returned to normal.\n\nNext Steps & Next Update:\nWe are continuing to review the incident to better understand the cause and prevent future occurrences. No further updates are expected unless new information becomes available."
+  }
+]
