@@ -14,7 +14,31 @@ The Copilot reduces drafting time, standardizes messaging, and ensures clarity a
 
 ---
 
-# 2. Problem Statement
+# 2. Key Assumptions
+
+The following assumptions inform the product design and scoping decisions:
+
+### About the Current Process
+* Incident communications are drafted **manually** by whoever is on-call — there is no templating system or AI assistance in place today.
+* The primary bottleneck is **synthesis, not writing** — engineers have the data but struggle to distill it into customer-appropriate language under time pressure.
+* Multiple data sources (PagerDuty, Prometheus, CloudWatch, GitHub, Slack) are already captured during incidents but are **not consolidated** into a single view.
+* Status page updates follow an informal structure that varies by author; there is no enforced template or style guide.
+
+### About Stakeholders & Users
+* The **Incident Commander** (typically a senior engineer or SRE) owns the decision to publish external communications and is the primary user of this tool.
+* **Technical Support / Customer Success** teams are secondary consumers who need consistent, pre-approved language to relay to customers through other channels (email, chat).
+* There is **no dedicated communications team** reviewing status page updates during incidents — the engineer who publishes is the final reviewer.
+* Leadership and legal review is post-hoc, not blocking — meaning guardrails must be built **into** the tool, not added as a manual approval step.
+
+### About AI & Technical Constraints
+* LLM-generated content must **never be auto-published** — a human must review and approve every external message.
+* Structured extraction (JSON) before generation reduces hallucination risk compared to end-to-end text generation.
+* The tool must work with **incomplete data** — not every incident will have all five data sources available (e.g., Slack threads may be missing for off-hours incidents).
+* Latency of the full AI pipeline (extraction + generation + risk scan) must stay **under 30 seconds** to be useful during active incidents.
+
+---
+
+# 3. Problem Statement
 
 When a Sev-1 or Sev-2 incident occurs:
 
@@ -118,55 +142,90 @@ The Copilot normalizes these into a **Unified Incident Timeline Model**, which b
 
 # 6. User Personas
 
-## Primary: Incident Commander (Engineering/SRE)
+## Primary User: Incident Commander (Engineering/SRE)
 
-Goals:
+The IC is the person who owns the incident end-to-end. They are typically a senior engineer or SRE who was paged, and they are simultaneously debugging, coordinating, and responsible for external communications.
 
-* Reduce drafting time
-* Maintain factual accuracy
-* Avoid compliance mistakes
-* Maintain confidence in communications
+**Context of use:** High-stress, time-sensitive. The IC has 5–10 browser tabs open, is on a Zoom bridge, and needs to push a status page update within minutes — not hours.
 
-## Secondary: Support / Customer Success
+**Goals:**
+* Draft a customer update in **under 2 minutes** instead of 15–20
+* Avoid accidentally leaking internal details (PR numbers, DB names, engineer names)
+* Feel confident the message is accurate and appropriately scoped
+* Not have to context-switch from debugging to "marketing-style writing"
 
-Goals:
+**Key frustration:** "I know what happened, but I don't have time to wordsmith it for customers right now."
 
-* Reuse standardized messaging
-* Clearly communicate impact to customers
-* Reduce back-and-forth clarification
+## Secondary User: Technical Support / Customer Success
+
+Support engineers receive inbound customer inquiries during incidents. They need consistent, approved language they can reference or forward.
+
+**Context of use:** Reactive — responding to customer tickets and escalations during/after incidents.
+
+**Goals:**
+* Access a pre-approved customer-facing summary without chasing the IC
+* Communicate impact clearly without needing deep technical context
+* Reduce back-and-forth clarification with engineering
+
+**Key frustration:** "Engineering says 'we're working on it' but I need specifics to tell the customer."
 
 ---
 
 # 7. User Experience
 
-## Crawl Phase Flow
+## User Flow (Crawl Phase)
 
-1. User uploads incident bundle.
-2. System auto-detects:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  IC is paged → opens Copilot in browser                     │
+│                                                             │
+│  Step 1: UPLOAD                                             │
+│  ├── User input: Drag & drop incident bundle (.zip)         │
+│  └── Contains: PagerDuty, metrics, logs, deploys, Slack     │
+│                                                             │
+│  Step 2: AUTO-DETECT (no user input required)               │
+│  ├── System extracts: Incident ID, Service, Severity        │
+│  ├── System determines: Time window (start → end)           │
+│  └── System builds: Unified timeline from all sources       │
+│                                                             │
+│  Step 3: SELECT STAGE                                       │
+│  ├── User input: Picks incident stage from dropdown         │
+│  └── Options: Initial | Identified | Monitoring | Resolved  │
+│                                                             │
+│  Step 4: AI GENERATES (3-stage pipeline, ~10-15s)           │
+│  ├── Output 1: Internal structured summary (for eng team)   │
+│  ├── Output 2: Customer-facing status page draft            │
+│  └── Output 3: Brand risk flags with explanations           │
+│                                                             │
+│  Step 5: REVIEW & EDIT                                      │
+│  ├── User reviews side-by-side (internal | external)        │
+│  ├── User edits the external draft directly in-browser      │
+│  ├── Risk flags highlight phrases to reconsider             │
+│  └── User copies final text → pastes to status page         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-   * Incident ID
-   * Service
-   * Severity
-   * Time window
-3. User selects incident stage:
+### What the user provides (inputs)
+* **Incident bundle** (.zip) — the only required input. Contains raw data files that are already generated during normal incident response.
+* **Incident stage** — a single dropdown selection that controls the tone and structure of the generated message (e.g., "initial" = emphasize investigation in progress; "resolved" = past tense, focus on resolution).
 
-   * Initial
-   * Identified
-   * Monitoring
-   * Resolved
-4. System generates:
+### What the user receives (outputs)
+* **Internal summary** — technical details suitable for engineering Slack channels and postmortem docs. May include PR numbers, DB names, and root cause hypotheses.
+* **Customer-facing draft** — structured update with sections: Summary, Impact, Scope & Duration, Current Status, Next Steps. Written in plain language with no internal identifiers.
+* **Risk flags** — specific phrases highlighted with category (internal identifier / speculation / overly technical) and recommended action. Non-blocking — the user decides whether to edit.
 
-   * Internal structured summary
-   * Customer-facing draft
-   * Risk flags
-5. User edits and copies to status page.
+### Why this flow works
+* **One file upload, not five** — the IC doesn't have to manually copy data from each system.
+* **Stage selection is the only decision** — everything else is inferred from data.
+* **AI proposes; human approves** — the IC maintains full control and can edit freely.
+* **Side-by-side layout** — mirrors how ICs think: "what do we know internally?" vs. "what do we tell customers?"
 
 ## Key UX Principles
 
-* AI proposes; human approves.
-* Structured templates, not freeform prose.
-* Risk highlighting is visible but non-blocking.
-* Minimal clicks during high-severity events.
+* **AI proposes; human approves.** No auto-publishing, ever.
+* **Structured templates, not freeform prose.** Consistency comes from structure, not instructions.
+* **Risk highlighting is visible but non-blocking.** Flags inform; they don't gate.
+* **Minimal clicks during high-severity events.** Upload → select stage → generate. Three actions.
 
 ---
 
