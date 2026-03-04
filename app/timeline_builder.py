@@ -5,7 +5,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import IncidentTimeline, IncidentEvent, IncidentSeverity
 
@@ -15,25 +15,66 @@ def parse_iso(ts: str) -> datetime:
     return datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
 
+# ---------------------------------------------------------------------------
+# Public entry points
+# ---------------------------------------------------------------------------
+
 def build_timeline_from_bundle(bundle_dir: Path) -> IncidentTimeline:
     """
-    Build a unified IncidentTimeline from the provided incident bundle directory.
-
-    Expected files (as in the take-home dataset):
-    - pagerduty_incident.json
-    - prometheus_metrics.json
-    - cloudwatch_logs.json
-    - github_deployments.json
-    - incident_context.txt
+    Build a unified IncidentTimeline from a bundle directory on disk.
+    Reads each file into a dict, then delegates to build_timeline_from_payload.
     """
-    pagerduty_path = bundle_dir / "pagerduty_incident.json"
-    metrics_path = bundle_dir / "prometheus_metrics.json"
-    logs_path = bundle_dir / "cloudwatch_logs.json"
-    deployments_path = bundle_dir / "github_deployments.json"
-    slack_path = bundle_dir / "incident_context.txt"
+    payload: Dict[str, Any] = {}
 
-    incident_id, service, severity, window_start, window_end = _parse_pagerduty(
-        pagerduty_path
+    pd_path = bundle_dir / "pagerduty_incident.json"
+    if pd_path.exists():
+        with pd_path.open() as f:
+            payload["pagerduty"] = json.load(f)
+
+    metrics_path = bundle_dir / "prometheus_metrics.json"
+    if metrics_path.exists():
+        with metrics_path.open() as f:
+            payload["prometheus_metrics"] = json.load(f)
+
+    logs_path = bundle_dir / "cloudwatch_logs.json"
+    if logs_path.exists():
+        with logs_path.open() as f:
+            payload["cloudwatch_logs"] = json.load(f)
+
+    deployments_path = bundle_dir / "github_deployments.json"
+    if deployments_path.exists():
+        with deployments_path.open() as f:
+            payload["github_deployments"] = json.load(f)
+
+    context_path = bundle_dir / "incident_context.txt"
+    if context_path.exists():
+        payload["incident_context"] = context_path.read_text(encoding="utf-8")
+
+    return build_timeline_from_payload(payload)
+
+
+def build_timeline_from_payload(payload: Dict[str, Any]) -> IncidentTimeline:
+    """
+    Build a unified IncidentTimeline from a raw payload dict.
+
+    All keys are optional — the builder gracefully handles missing sources.
+
+    Expected keys:
+        pagerduty          – dict with "incident" key (PagerDuty schema)
+        prometheus_metrics – dict with "metrics" key
+        cloudwatch_logs    – dict with "logs" key
+        github_deployments – dict with "deployments" key
+        incident_context   – plain text string (Slack thread)
+    """
+    pd_data = payload.get("pagerduty")
+    metrics_data = payload.get("prometheus_metrics")
+    logs_data = payload.get("cloudwatch_logs")
+    deploys_data = payload.get("github_deployments")
+    context_text = payload.get("incident_context")
+
+    # Extract incident metadata — PagerDuty is authoritative but optional
+    incident_id, service, severity, window_start, window_end = _extract_metadata(
+        pd_data, metrics_data, logs_data,
     )
 
     timeline = IncidentTimeline(
@@ -44,41 +85,80 @@ def build_timeline_from_bundle(bundle_dir: Path) -> IncidentTimeline:
         window_end=window_end,
     )
 
-    _add_pagerduty_timeline_events(timeline, pagerduty_path)
-    _add_metric_events(timeline, metrics_path)
-    _add_log_events(timeline, logs_path)
-    _add_deployment_events(timeline, deployments_path)
-    _add_slack_events(timeline, slack_path, window_start)
+    if pd_data:
+        _add_pagerduty_events(timeline, pd_data)
+    if metrics_data:
+        _add_metric_events(timeline, metrics_data)
+    if logs_data:
+        _add_log_events(timeline, logs_data)
+    if deploys_data:
+        _add_deployment_events(timeline, deploys_data)
+    if context_text and window_start:
+        _add_slack_events(timeline, context_text, window_start)
 
-    # Sort all events chronologically
     timeline.events.sort(key=lambda e: e.timestamp)
     return timeline
 
 
 # ---------------------------------------------------------------------------
-# PagerDuty
+# Metadata extraction with fallback
 # ---------------------------------------------------------------------------
 
-def _parse_pagerduty(
-    path: Path,
+def _extract_metadata(
+    pd_data: Optional[Dict[str, Any]],
+    metrics_data: Optional[Dict[str, Any]],
+    logs_data: Optional[Dict[str, Any]],
 ) -> Tuple[str, str, IncidentSeverity, datetime, Optional[datetime]]:
-    with path.open() as f:
-        data = json.load(f)["incident"]
+    """
+    Extract incident_id, service, severity, window_start, window_end.
+    PagerDuty is authoritative; falls back to metrics/logs timestamps if absent.
+    """
+    if pd_data:
+        inc = pd_data["incident"]
+        incident_id = inc["id"]
+        service = inc["service"]
+        severity: IncidentSeverity = inc.get("severity", "SEV-2")
+        window_start = parse_iso(inc["created_at"])
+        window_end = parse_iso(inc["resolved_at"]) if inc.get("resolved_at") else None
+        return incident_id, service, severity, window_start, window_end
 
-    incident_id: str = data["id"]
-    service: str = data["service"]
-    severity: IncidentSeverity = data.get("severity", "SEV-2")
-    window_start = parse_iso(data["created_at"])
-    window_end = parse_iso(data["resolved_at"]) if data.get("resolved_at") else None
-    return incident_id, service, severity, window_start, window_end
+    # Fallback: infer from available timestamps
+    timestamps: List[datetime] = []
+    service = "unknown"
+
+    if metrics_data:
+        for series in metrics_data.get("metrics", []):
+            svc = series.get("labels", {}).get("service")
+            if svc:
+                service = svc
+            for pt in series.get("values", []):
+                timestamps.append(parse_iso(pt["timestamp"]))
+
+    if logs_data:
+        for entry in logs_data.get("logs", []):
+            timestamps.append(parse_iso(entry["timestamp"]))
+            svc = entry.get("service")
+            if svc:
+                service = svc
+
+    if timestamps:
+        window_start = min(timestamps)
+        window_end = max(timestamps)
+    else:
+        window_start = datetime.now(timezone.utc)
+        window_end = None
+
+    return "unknown", service, "SEV-2", window_start, window_end
 
 
-def _add_pagerduty_timeline_events(timeline: IncidentTimeline, path: Path) -> None:
-    """Add PagerDuty lifecycle events (trigger, acknowledge, resolve)."""
-    with path.open() as f:
-        data = json.load(f)["incident"]
+# ---------------------------------------------------------------------------
+# PagerDuty events (from dict)
+# ---------------------------------------------------------------------------
 
-    for entry in data.get("timeline", []):
+def _add_pagerduty_events(timeline: IncidentTimeline, pd_data: Dict[str, Any]) -> None:
+    """Add PagerDuty lifecycle events from a parsed dict."""
+    inc = pd_data.get("incident", {})
+    for entry in inc.get("timeline", []):
         timeline.events.append(
             IncidentEvent(
                 timestamp=parse_iso(entry["timestamp"]),
@@ -94,23 +174,17 @@ def _add_pagerduty_timeline_events(timeline: IncidentTimeline, path: Path) -> No
 
 
 # ---------------------------------------------------------------------------
-# Prometheus Metrics
+# Prometheus Metrics (from dict)
 # ---------------------------------------------------------------------------
 
-# Thresholds for detecting notable metric events
-_LATENCY_P99_THRESHOLD = 1.0  # seconds
+_LATENCY_P99_THRESHOLD = 1.0
 _LATENCY_P50_THRESHOLD = 0.5
 _POOL_UTIL_THRESHOLD = 0.9
-_HTTP_500_THRESHOLD = 1  # any 500s are notable
+_HTTP_500_THRESHOLD = 1
 
 
-def _add_metric_events(timeline: IncidentTimeline, path: Path) -> None:
+def _add_metric_events(timeline: IncidentTimeline, data: Dict[str, Any]) -> None:
     """Detect spikes in Prometheus metrics and emit metric_spike events."""
-    if not path.exists():
-        return
-    with path.open() as f:
-        data = json.load(f)
-
     for series in data.get("metrics", []):
         metric_name = series["metric_name"]
         labels = series.get("labels", {})
@@ -160,16 +234,11 @@ def _add_metric_events(timeline: IncidentTimeline, path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CloudWatch Logs
+# CloudWatch Logs (from dict)
 # ---------------------------------------------------------------------------
 
-def _add_log_events(timeline: IncidentTimeline, path: Path) -> None:
+def _add_log_events(timeline: IncidentTimeline, data: Dict[str, Any]) -> None:
     """Parse CloudWatch logs and emit error_burst / note events."""
-    if not path.exists():
-        return
-    with path.open() as f:
-        data = json.load(f)
-
     for entry in data.get("logs", []):
         ts = parse_iso(entry["timestamp"])
         level = entry.get("level", "INFO")
@@ -187,16 +256,11 @@ def _add_log_events(timeline: IncidentTimeline, path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# GitHub Deployments
+# GitHub Deployments (from dict)
 # ---------------------------------------------------------------------------
 
-def _add_deployment_events(timeline: IncidentTimeline, path: Path) -> None:
-    """Add deployment events from github_deployments.json."""
-    if not path.exists():
-        return
-    with path.open() as f:
-        data = json.load(f)
-
+def _add_deployment_events(timeline: IncidentTimeline, data: Dict[str, Any]) -> None:
+    """Add deployment events from a parsed dict."""
     for dep in data.get("deployments", []):
         ts = parse_iso(dep["timestamp"])
         title = dep.get("title", "unknown deployment")
@@ -224,45 +288,33 @@ def _add_deployment_events(timeline: IncidentTimeline, path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Slack / incident_context.txt
+# Slack / incident_context (from string)
 # ---------------------------------------------------------------------------
 
-# Pattern matches lines like: [2:23 PM] @alice.engineer: Some message
 _SLACK_LINE_RE = re.compile(
     r"\[(\d{1,2}:\d{2}\s*[APap][Mm])\]\s+@([\w.\-]+):\s*(.*)"
 )
 
 
 def _add_slack_events(
-    timeline: IncidentTimeline, path: Path, incident_date_ref: datetime
+    timeline: IncidentTimeline, text: str, incident_date_ref: datetime
 ) -> None:
     """
-    Parse the Slack-style incident_context.txt and add slack_message events.
+    Parse Slack-style incident context text and add slack_message events.
 
-    Timestamps in the file are local times like '2:23 PM'. We anchor them
-    to the same UTC date as the incident start (good enough for a single-day
-    incident). For this dataset the Slack times are Pacific but the metrics
-    are UTC; the file header says 'around 2:23 PM Pacific Time' which maps
-    to 14:23 UTC on this particular January day (UTC-8).  We store them as
-    UTC by adding 8 hours to the parsed local time.
+    Timestamps are local times like '2:23 PM'. We anchor them to the
+    incident date and convert Pacific (UTC-8) to UTC by adding 8 hours.
     """
-    if not path.exists():
-        return
-
-    text = path.read_text(encoding="utf-8")
     base_date = incident_date_ref.date()
 
     for match in _SLACK_LINE_RE.finditer(text):
         time_str, user, message = match.groups()
 
-        # Parse "2:23 PM" -> hour/minute
         try:
             local_time = datetime.strptime(time_str.strip(), "%I:%M %p")
         except ValueError:
             continue
 
-        # Anchor to incident date.  Slack times are Pacific (UTC-8 in January).
-        # Convert to UTC by adding 8 hours.
         utc_hour = local_time.hour + 8
         ts = datetime(
             base_date.year,

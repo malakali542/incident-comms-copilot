@@ -2,20 +2,29 @@
 """
 Streamlit UI for the Incident Communications Copilot.
 
-Run with:  streamlit run main.py
+The UI is a client of the /analyze API. Start the API first:
+    uvicorn app.api:app --port 8000
+
+Then run the UI:
+    streamlit run main.py
 """
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
 
+import requests
 import streamlit as st
 
-from .timeline_builder import build_timeline_from_bundle
-from .llm_pipeline import LLMClient, IncidentLLMPipeline
+from .timeline_builder import build_timeline_from_payload
 from .eval_utils import compare_facts_to_expected, check_hallucinations, GOLDEN_EXPECTED
+from .models import IncidentFacts, GeneratedMessages, RiskFlag, RiskScanResult
+
+
+API_DEFAULT_URL = "http://localhost:8000"
 
 
 # ---------------------------------------------------------------------------
@@ -32,21 +41,47 @@ def _extract_zip_to_tmpdir(uploaded_file) -> Path:
     with zipfile.ZipFile(zip_path, "r") as zf:
         zf.extractall(extract_dir)
 
-    # The zip may contain a top-level folder; find the dir with the json files.
-    candidates = [
-        d
-        for d in extract_dir.rglob("pagerduty_incident.json")
-    ]
+    candidates = [d for d in extract_dir.rglob("pagerduty_incident.json")]
     if candidates:
         return candidates[0].parent
     return extract_dir
 
 
+def _bundle_dir_to_payload(bundle_dir: Path) -> dict:
+    """Read bundle files into a payload dict matching the /analyze schema."""
+    payload: dict = {}
+
+    for fname, key in [
+        ("pagerduty_incident.json", "pagerduty"),
+        ("prometheus_metrics.json", "prometheus_metrics"),
+        ("cloudwatch_logs.json", "cloudwatch_logs"),
+        ("github_deployments.json", "github_deployments"),
+    ]:
+        fpath = bundle_dir / fname
+        if fpath.exists():
+            with fpath.open() as f:
+                payload[key] = json.load(f)
+
+    context_path = bundle_dir / "incident_context.txt"
+    if context_path.exists():
+        payload["incident_context"] = context_path.read_text(encoding="utf-8")
+
+    return payload
+
+
+def _call_analyze_api(api_url: str, payload: dict, stage: str, model: str) -> dict:
+    """POST to /analyze and return the JSON response."""
+    body = {**payload, "stage": stage, "model": model}
+    resp = requests.post(f"{api_url}/analyze", json=body, timeout=120)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def _render_risk_badge(risk_score: str):
-    """Render a colored badge for the brand risk score."""
+    """Render a colored badge for the risk score."""
     color_map = {"low": "🟢", "medium": "🟡", "high": "🔴"}
     icon = color_map.get(risk_score, "⚪")
-    st.markdown(f"### {icon} Brand Risk Score: **{risk_score.upper()}**")
+    st.markdown(f"### {icon} Communications Risk Score: **{risk_score.upper()}**")
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +99,7 @@ def run_app():
     with st.sidebar:
         st.image("https://img.icons8.com/fluency/96/bot.png", width=64)
         st.title("⚙️ Settings")
+        api_url = st.text_input("API URL", value=API_DEFAULT_URL)
         model_name = st.text_input("OpenAI model", value="gpt-4.1")
         st.markdown("---")
         st.caption("Abnormal Security – AI Incident Comms Copilot")
@@ -98,31 +134,51 @@ def run_app():
     # ---- Generate ----
     if st.button("🚀 Generate Draft", type="primary", use_container_width=True):
         with st.status("Running AI pipeline…", expanded=True) as status:
-            # Step 0: Extract
+            # Step 0: Extract zip and build payload
             st.write("📦 Extracting bundle…")
             bundle_dir = _extract_zip_to_tmpdir(uploaded_file)
+            payload = _bundle_dir_to_payload(bundle_dir)
 
-            # Step 1: Build timeline
-            st.write("🔗 Building unified incident timeline…")
-            timeline = build_timeline_from_bundle(bundle_dir)
-            st.write(
-                f"  ✅ Timeline built: **{len(timeline.events)} events**, "
-                f"service=`{timeline.service}`, severity=`{timeline.severity}`"
+            # Step 1: Call POST /analyze API
+            st.write("📡 Calling /analyze API…")
+            try:
+                result = _call_analyze_api(api_url, payload, stage=stage, model=model_name)
+            except requests.ConnectionError:
+                st.error(f"❌ Cannot connect to API at {api_url}. Start it with: `uvicorn app.api:app`")
+                return
+            except requests.HTTPError as e:
+                st.error(f"❌ API error: {e.response.status_code} — {e.response.text}")
+                return
+
+            # Step 2: Build timeline locally for UI display
+            timeline = build_timeline_from_payload(payload)
+
+            # Reconstruct typed objects for UI rendering
+            facts = IncidentFacts(
+                incident_id=result["incident_id"],
+                service=result["service"],
+                severity=result["severity"],
+                start_time=result["start_time"],
+                end_time=result["end_time"],
+                impact_type=result["impact_type"],
+                customer_impact_summary=result["customer_impact_summary"],
+                scope=result["scope"],
+                mitigation_summary=result["mitigation_summary"],
+                deployment_related=result["deployment_related"],
+                root_cause_confidence=result["root_cause_confidence"],
+                knowns=result.get("knowns", []),
+                unknowns=result.get("unknowns", []),
+                notes_for_internal_use=result.get("notes_for_internal_use", ""),
             )
-
-            # Step 2: LLM Stage 1 – Structured extraction
-            st.write("🤖 Stage 1 / 3 — Extracting structured facts…")
-            client = LLMClient(model_name=model_name)
-            pipeline = IncidentLLMPipeline(client)
-            facts = pipeline.extract_facts(timeline)
-
-            # Step 3: LLM Stage 2 – Generation
-            st.write("✍️  Stage 2 / 3 — Generating messages…")
-            messages = pipeline.generate_messages(facts, stage=stage)
-
-            # Step 4: LLM Stage 3 – Brand risk scan
-            st.write("🛡️  Stage 3 / 3 — Scanning for brand risks…")
-            risk = pipeline.scan_risk(messages.external_update)
+            messages = GeneratedMessages(
+                internal_summary=result["internal_summary"],
+                external_update=result["external_update"],
+            )
+            risk = RiskScanResult(
+                risk_score=result["risk_score"],
+                flags=[RiskFlag(**f) for f in result["risk_flags"]],
+                recommendations=result.get("recommendations", ""),
+            )
 
             status.update(label="✅ Pipeline complete!", state="complete")
 

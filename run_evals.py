@@ -93,7 +93,7 @@ def evaluate_incident(
 
     # Stage 3: Brand risk scan
     start = time.time()
-    risk = pipeline.scan_risk(messages.external_update)
+    risk = pipeline.scan_risk(messages.external_update, facts=facts)
     risk_time = round(time.time() - start, 2)
 
     return {

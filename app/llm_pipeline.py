@@ -104,13 +104,19 @@ class IncidentLLMPipeline:
     # Stage 3: Brand Risk & Compliance Scan
     # ------------------------------------------------------------------
 
-    def scan_risk(self, external_update: str) -> RiskScanResult:
+    def scan_risk(self, external_update: str, facts: IncidentFacts | None = None) -> RiskScanResult:
         """
-        Run Model 3: brand risk scan — flag risky phrases in external message.
+        Run Model 3: comprehensive communications risk scan — flag risky
+        phrases in external message, grounded against extracted facts.
         """
+        user_content = f"## External Update\n{external_update}"
+        if facts:
+            facts_json = json.dumps(facts.__dict__, default=str, indent=2)
+            user_content += f"\n\n## Incident Facts\n{facts_json}"
+
         raw = self.client.structured_completion(
             BRAND_RISK_SCAN_SYSTEM_PROMPT,
-            user_content=external_update,
+            user_content=user_content,
         )
         flags = [
             RiskFlag(
