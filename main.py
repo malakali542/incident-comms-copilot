@@ -2,8 +2,12 @@
 """
 Incident Communications Copilot – Entry Point
 
-Usage:
+Streamlit UI:
     streamlit run main.py
+
+REST API:
+    uvicorn app.api:app --reload
+    Docs available at http://localhost:8000/docs
 """
 from app.ui_streamlit import run_app
 

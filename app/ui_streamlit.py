@@ -3,27 +3,30 @@
 Streamlit UI for the Incident Communications Copilot.
 
 Run with:  streamlit run main.py
+Requires the API server to be running: uvicorn app.api:app --reload
 """
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
 
+import requests
 import streamlit as st
 
-from .timeline_builder import build_timeline_from_bundle
-from .llm_pipeline import LLMClient, IncidentLLMPipeline
 from .eval_utils import compare_facts_to_expected, check_hallucinations, GOLDEN_EXPECTED
+from .models import IncidentFacts
+from .timeline_builder import build_timeline_from_dict
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _extract_zip_to_tmpdir(uploaded_file) -> Path:
-    """Save the uploaded zip to a temp dir, extract it, and return the bundle root."""
+def _read_bundle_from_zip(uploaded_file) -> dict:
+    """Extract the zip and read each file's contents into a dict payload."""
     tmp = Path(tempfile.mkdtemp())
     zip_path = tmp / "bundle.zip"
     zip_path.write_bytes(uploaded_file.getvalue())
@@ -33,17 +36,33 @@ def _extract_zip_to_tmpdir(uploaded_file) -> Path:
         zf.extractall(extract_dir)
 
     # The zip may contain a top-level folder; find the dir with the json files.
-    candidates = [
-        d
-        for d in extract_dir.rglob("pagerduty_incident.json")
-    ]
-    if candidates:
-        return candidates[0].parent
-    return extract_dir
+    candidates = list(extract_dir.rglob("pagerduty_incident.json"))
+    bundle_dir = candidates[0].parent if candidates else extract_dir
+
+    payload: dict = {}
+
+    pd_path = bundle_dir / "pagerduty_incident.json"
+    if pd_path.exists():
+        payload["pagerduty_incident"] = json.loads(pd_path.read_text())
+
+    for key, filename in [
+        ("prometheus_metrics", "prometheus_metrics.json"),
+        ("cloudwatch_logs", "cloudwatch_logs.json"),
+        ("github_deployments", "github_deployments.json"),
+    ]:
+        p = bundle_dir / filename
+        if p.exists():
+            payload[key] = json.loads(p.read_text())
+
+    slack_path = bundle_dir / "incident_context.txt"
+    if slack_path.exists():
+        payload["incident_context"] = slack_path.read_text()
+
+    shutil.rmtree(tmp, ignore_errors=True)
+    return payload
 
 
 def _render_risk_badge(risk_score: str):
-    """Render a colored badge for the brand risk score."""
     color_map = {"low": "🟢", "medium": "🟡", "high": "🔴"}
     icon = color_map.get(risk_score, "⚪")
     st.markdown(f"### {icon} Brand Risk Score: **{risk_score.upper()}**")
@@ -64,6 +83,7 @@ def run_app():
     with st.sidebar:
         st.image("https://img.icons8.com/fluency/96/bot.png", width=64)
         st.title("⚙️ Settings")
+        api_url = st.text_input("API URL", value="http://localhost:8000")
         model_name = st.text_input("OpenAI model", value="gpt-4.1")
         st.markdown("---")
         st.caption("Abnormal Security – AI Incident Comms Copilot")
@@ -88,7 +108,7 @@ def run_app():
         stage = st.selectbox(
             "Incident stage",
             options=["initial", "identified", "monitoring", "resolved"],
-            index=3,  # default to 'resolved' for the sample data
+            index=3,
         )
 
     if uploaded_file is None:
@@ -98,53 +118,49 @@ def run_app():
     # ---- Generate ----
     if st.button("🚀 Generate Draft", type="primary", use_container_width=True):
         with st.status("Running AI pipeline…", expanded=True) as status:
-            # Step 0: Extract
             st.write("📦 Extracting bundle…")
-            bundle_dir = _extract_zip_to_tmpdir(uploaded_file)
+            payload = _read_bundle_from_zip(uploaded_file)
 
-            # Step 1: Build timeline
+            # Build timeline locally for the timeline viewer
             st.write("🔗 Building unified incident timeline…")
-            timeline = build_timeline_from_bundle(bundle_dir)
+            timeline = build_timeline_from_dict(payload)
             st.write(
                 f"  ✅ Timeline built: **{len(timeline.events)} events**, "
                 f"service=`{timeline.service}`, severity=`{timeline.severity}`"
             )
 
-            # Step 2: LLM Stage 1 – Structured extraction
-            st.write("🤖 Stage 1 / 3 — Extracting structured facts…")
-            client = LLMClient(model_name=model_name)
-            pipeline = IncidentLLMPipeline(client)
-            facts = pipeline.extract_facts(timeline)
+            # Call the API for the AI pipeline
+            st.write("🤖 Calling API — running 3-stage LLM pipeline…")
+            try:
+                response = requests.post(
+                    f"{api_url}/generate",
+                    json={**payload, "stage": stage, "model": model_name},
+                    timeout=120,
+                )
+                response.raise_for_status()
+            except requests.exceptions.ConnectionError:
+                st.error(
+                    f"Could not connect to the API at `{api_url}`. "
+                    "Make sure the server is running: `uvicorn app.api:app --reload`"
+                )
+                status.update(label="❌ Connection failed", state="error")
+                return
+            except requests.exceptions.HTTPError as exc:
+                st.error(f"API error {exc.response.status_code}: {exc.response.text}")
+                status.update(label="❌ API error", state="error")
+                return
 
-            # Step 3: LLM Stage 2 – Generation
-            st.write("✍️  Stage 2 / 3 — Generating messages…")
-            messages = pipeline.generate_messages(facts, stage=stage)
-
-            # Step 4: LLM Stage 3 – Brand risk scan
-            st.write("🛡️  Stage 3 / 3 — Scanning for brand risks…")
-            risk = pipeline.scan_risk(messages.external_update)
-
+            data = response.json()
             status.update(label="✅ Pipeline complete!", state="complete")
 
-        # ---- Store results in session state for editing ----
-        st.session_state["facts"] = facts
-        st.session_state["messages"] = messages
-        st.session_state["risk"] = risk
+        st.session_state["data"] = data
         st.session_state["timeline"] = timeline
 
-        # Clean up temp dir
-        try:
-            shutil.rmtree(bundle_dir.parent.parent, ignore_errors=True)
-        except Exception:
-            pass
-
     # ---- Display results ----
-    if "facts" not in st.session_state:
+    if "data" not in st.session_state:
         return
 
-    facts = st.session_state["facts"]
-    messages = st.session_state["messages"]
-    risk = st.session_state["risk"]
+    data = st.session_state["data"]
     timeline = st.session_state["timeline"]
 
     st.markdown("---")
@@ -156,35 +172,35 @@ def run_app():
         st.subheader("📋 Internal Summary")
         st.text_area(
             "Internal (editable)",
-            value=messages.internal_summary,
+            value=data["internal_summary"],
             height=350,
             key="internal_edit",
         )
 
         with st.expander("🔍 Extracted Incident Facts (JSON)"):
-            import json
-            st.json(json.loads(json.dumps(facts.__dict__, default=str)))
+            st.json(data["facts"])
 
     with right:
         st.subheader("📣 Customer-Facing Draft")
-        _render_risk_badge(risk.risk_score)
+        _render_risk_badge(data["risk_score"])
 
-        external_text = st.text_area(
+        st.text_area(
             "External update (editable)",
-            value=messages.external_update,
+            value=data["external_update"],
             height=350,
             key="external_edit",
         )
 
-        if risk.flags:
-            st.warning(f"⚠️ {len(risk.flags)} brand risk flag(s) detected:")
-            for flag in risk.flags:
+        flags = data["flags"]
+        if flags:
+            st.warning(f"⚠️ {len(flags)} brand risk flag(s) detected:")
+            for flag in flags:
                 st.markdown(
-                    f"- **`{flag.text}`** — _{flag.category}_ — {flag.reason}"
+                    f"- **`{flag['text']}`** — _{flag['category']}_ — {flag['reason']}"
                 )
 
-        if risk.recommendations:
-            st.info(f"💡 **Recommendation:** {risk.recommendations}")
+        if data["recommendations"]:
+            st.info(f"💡 **Recommendation:** {data['recommendations']}")
 
         st.button("📋 Copy to clipboard", help="Copy the external update text")
 
@@ -206,43 +222,39 @@ def run_app():
     st.markdown("---")
     tab_risk, tab_eval = st.tabs(["🛡️ Brand Risk Details", "🧪 Eval (internal)"])
 
-    # ---- Brand Risk tab ----
     with tab_risk:
-        _render_risk_badge(risk.risk_score)
+        _render_risk_badge(data["risk_score"])
 
         col_score, col_flags = st.columns([1, 2])
-
         with col_score:
-            st.metric("Risk Score", risk.risk_score.upper())
-            st.metric("Flags Detected", len(risk.flags))
+            st.metric("Risk Score", data["risk_score"].upper())
+            st.metric("Flags Detected", len(flags))
 
         with col_flags:
-            if risk.flags:
+            if flags:
                 st.markdown("#### Flagged Phrases")
-                for i, flag in enumerate(risk.flags, 1):
+                for i, flag in enumerate(flags, 1):
                     with st.container():
                         st.markdown(
-                            f"**{i}. `{flag.text}`**  \n"
-                            f"Category: _{flag.category}_  \n"
-                            f"Reason: {flag.reason}"
+                            f"**{i}. `{flag['text']}`**  \n"
+                            f"Category: _{flag['category']}_  \n"
+                            f"Reason: {flag['reason']}"
                         )
                         st.divider()
             else:
                 st.success("✅ No brand risk flags — the external message looks clean.")
 
-        if risk.recommendations:
-            st.info(f"💡 **Recommendations:** {risk.recommendations}")
+        if data["recommendations"]:
+            st.info(f"💡 **Recommendations:** {data['recommendations']}")
 
         st.markdown("#### Full External Message (scanned)")
-        st.code(messages.external_update, language=None)
+        st.code(data["external_update"], language=None)
 
-    # ---- Eval tab ----
     with tab_eval:
         st.caption("🔒 Internal use — compare pipeline output against golden expected values.")
 
-        correct, total, mismatches = compare_facts_to_expected(
-            facts, GOLDEN_EXPECTED
-        )
+        facts = IncidentFacts(**data["facts"])
+        correct, total, mismatches = compare_facts_to_expected(facts, GOLDEN_EXPECTED)
         accuracy = correct / total if total > 0 else 0.0
 
         e_col1, e_col2, e_col3 = st.columns(3)
@@ -268,7 +280,6 @@ def run_app():
         else:
             st.success("No hallucinations — output is consistent with golden data. ✅")
 
-        # Verdict
         if not mismatches and not hallucinations:
             st.markdown("### 🟢 Verdict: PASSED")
         elif hallucinations:
