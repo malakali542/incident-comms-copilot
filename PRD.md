@@ -18,11 +18,22 @@ The Copilot reduces drafting time, standardizes messaging, and ensures clarity a
 
 The following assumptions inform the product design and scoping decisions:
 
-### About the Current Process
-* Incident communications are drafted **manually** by whoever is on-call — there is no templating system or AI assistance in place today.
-* The primary bottleneck is **synthesis, not writing** — engineers have the data but struggle to distill it into customer-appropriate language under time pressure.
+### About the Current Engineering Workflow
+We assume the following represents the typical incident response flow today:
+
+1. **Alert & Page** — PagerDuty fires an alert; the on-call engineer is paged and joins a Zoom/Slack incident bridge.
+2. **Triage** — The IC (Incident Commander) assesses severity, identifies the affected service, and begins coordinating debugging across the team.
+3. **Investigate** — Engineers pull up dashboards (Prometheus/Grafana), check logs (CloudWatch), review recent deployments (GitHub), and discuss hypotheses in Slack.
+4. **Communicate (current pain point)** — At some point during steps 2–3, the IC or a support engineer must **pause debugging** to manually draft a customer-facing status page update. They Alt-Tab between Slack, dashboards, and a text editor, synthesizing information from memory.
+5. **Review & Publish** — The draft is reviewed informally (often just a quick Slack message: "does this look ok?") and then published to the status page.
+6. **Repeat** — As the incident evolves, the IC must repeat steps 4–5 for each stage update (identified → monitoring → resolved).
+
+### About the Current Process (Pain Points)
+* There is **no templating system or AI assistance** for drafting communications today.
+* The primary bottleneck is **synthesis, not writing** — engineers have the data across multiple tools but struggle to distill it into customer-appropriate language under time pressure.
 * Multiple data sources (PagerDuty, Prometheus, CloudWatch, GitHub, Slack) are already captured during incidents but are **not consolidated** into a single view.
 * Status page updates follow an informal structure that varies by author; there is no enforced template or style guide.
+* The **15–30 minute gap** between incident detection and first customer update is largely spent on context-gathering, not writing.
 
 ### About Stakeholders & Users
 * The **Incident Commander** (typically a senior engineer or SRE) owns the decision to publish external communications and is the primary user of this tool.
