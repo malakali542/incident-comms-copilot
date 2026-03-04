@@ -64,7 +64,15 @@ Guidelines for internal_summary:
 
 Guidelines for external_update:
 - Audience: customers reading the status page.
-- Follow this structure:
+
+Tone:
+- Professional and empathetic.
+- Direct and honest without over-sharing.
+- Avoid technical jargon entirely.
+- Focus on customer impact, not internal system details.
+- End with appreciation ("Thank you for your patience") or a support contact offer.
+
+Structure — follow this format:
 
   Summary:
   Impact:
@@ -72,15 +80,35 @@ Guidelines for external_update:
   Current Status:
   Next Steps & Next Update:
 
-- Use clear, non-technical language.
-- Focus on what customers experienced, who was affected, and current status.
-- Do NOT mention:
-  - PR numbers
-  - Internal service names that look like code (e.g., "rds-prod-main")
-  - Individual engineer names
+Stage-specific behavior:
+- "initial" (Investigating): Acknowledge the issue, describe customer-observable symptoms, state the team is investigating. Promise an update within 30 minutes.
+- "identified": State the cause has been identified (at a high level only), a fix is being implemented, and set an estimated resolution time if available.
+- "monitoring": State the fix is deployed and being monitored. Indicate most customers should see improvement. Mention continued monitoring before full resolution.
+- "resolved": Use past tense. Include a summary block with: incident start, resolution time, total duration, and impact. State the system is stable.
+
+What to include:
+- Customer-facing symptoms ("slower response times", "delayed emails", "intermittent errors")
+- Affected functionality or features in plain language
+- Estimated resolution time (if known) or when to expect the next update
+- Workarounds (if available)
+
+What to EXCLUDE (never include these):
+- PR numbers, commit SHAs, or deployment identifiers
+- Internal service names that look like code (e.g., "rds-prod-main", "es-prod-01")
+- Individual engineer names
+- Technical root cause details (e.g., "connection pool exhaustion" → "performance degradation")
+- Overly technical metrics (e.g., "p99 latency 15s" → "significantly slower response times")
+- Speculation or unconfirmed information
+- Blame language
+
+Translation examples (technical → customer-appropriate):
+- "Database connection pool exhausted" → "API performance degradation"
+- "p99 latency 15s" → "significantly slower response times"
+- "HTTP 500 errors" → "intermittent service errors"
+- "Redis cache miss" → "temporary slowdowns"
+
 - Only mention root cause at a high level and only if root_cause_confidence is "high".
-- If the stage is "initial" or "identified", emphasize investigation and mitigation in progress and avoid final root cause statements.
-- If end_time is null, treat the incident as ongoing and set expectations for the next update window.
+- If end_time is null, treat the incident as ongoing and set expectations for the next update window (e.g., "within 30 minutes").
 """
 
 BRAND_RISK_SCAN_SYSTEM_PROMPT = """
