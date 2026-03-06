@@ -80,7 +80,7 @@ def _render_risk_badge(risk_score: str):
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Incident Comms Copilot",
+    page_title="Incident Comms",
     page_icon="🧠",
     layout="wide",
 )
@@ -92,10 +92,10 @@ with st.sidebar:
     api_url = st.text_input("API URL", value=DEFAULT_BACKEND_URL)
     model_name = st.text_input("OpenAI model", value="gpt-4.1")
     st.markdown("---")
-    st.caption("Abnormal Security – AI Incident Comms Copilot")
+    st.caption("Abnormal Security – AI Incident Comms")
 
 # ---- Header ----
-st.title("🧠 Incident Communications Copilot")
+st.title("🧠 Incident Communications")
 st.markdown(
     "Upload an incident bundle → get a structured summary, "
     "customer-ready draft, and brand risk flags in seconds."
