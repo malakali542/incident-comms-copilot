@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 """
-Incident Communications Copilot – Entry Point
+Incident Communications Copilot – Local Dev Reference
 
 Streamlit UI:
-    streamlit run main.py
+    streamlit run frontend/app.py
 
-REST API:
-    uvicorn app.api:app --reload
+REST API (from backend/ directory):
+    cd backend && uvicorn app.api:app --reload
     Docs available at http://localhost:8000/docs
-"""
-from app.ui_streamlit import run_app
 
-if __name__ == "__main__":
-    run_app()
-else:
-    # Streamlit imports the module rather than running __main__
-    run_app()
+Evals (from backend/ directory):
+    cd backend && python run_evals.py
+"""

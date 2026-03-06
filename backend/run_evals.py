@@ -29,7 +29,7 @@ from app.eval_utils import (
     validate_golden_incident,
 )
 
-GOLDEN_DIR = Path("golden")
+GOLDEN_DIR = Path(__file__).parent / "golden"
 
 # Field → human-readable interpretation hint for mismatches
 _FIELD_INTERPRETATIONS: Dict[str, str] = {

@@ -46,6 +46,13 @@ class RiskFlagOut(BaseModel):
     reason: str
 
 
+class TimelineEventOut(BaseModel):
+    timestamp: str
+    type: str
+    source: str
+    summary: str
+
+
 class GenerateResponse(BaseModel):
     external_update: str
     """Customer-facing status page message."""
@@ -60,6 +67,9 @@ class GenerateResponse(BaseModel):
     recommendations: str
     facts: Dict[str, Any]
     """Structured incident facts extracted by Stage 1."""
+
+    timeline_events: List[TimelineEventOut]
+    """Unified incident timeline events for display."""
 
 
 # ---------------------------------------------------------------------------
@@ -92,4 +102,13 @@ def generate(req: GenerateRequest) -> GenerateResponse:
         ],
         recommendations=risk.recommendations,
         facts=json.loads(json.dumps(facts.__dict__, default=str)),
+        timeline_events=[
+            TimelineEventOut(
+                timestamp=e.timestamp.strftime("%H:%M:%S UTC"),
+                type=e.type,
+                source=e.source,
+                summary=e.summary,
+            )
+            for e in timeline.events
+        ],
     )

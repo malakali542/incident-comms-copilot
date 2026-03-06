@@ -29,3 +29,6 @@ Thumbs.db
 
 # PDF
 *.pdf
+
+#Claude 
+.claude/
